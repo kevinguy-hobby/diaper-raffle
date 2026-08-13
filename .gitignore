@@ -1,20 +1,45 @@
-# The party's data. Never commit a guest list.
+# ---------------------------------------------------------------------------
+# Guest data. The database holds real names and real diaper counts, and this
+# repository is public. Never commit it.
+# ---------------------------------------------------------------------------
 *.db
 *.db-wal
 *.db-shm
 *.db.bak
+*.sqlite
+*.sqlite3
 
-# Build output
+# ---------------------------------------------------------------------------
+# Credentials. Nothing here belongs in git, ever.
+#
+# In practice the real ones live outside the repo — the Cloudflare tunnel
+# token is root-owned at /Library/Application Support/com.cloudflare.cloudflared/
+# and the origin certificate at ~/.cloudflared/. These patterns exist so that
+# a copy landing here by accident cannot be committed.
+# ---------------------------------------------------------------------------
+.tunnel-token
+tunnel-token
+cert.pem
+*.pem
+*.key
+*.p12
+*.pfx
+*.tunnel.json
+[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*.json
+.env
+.env.*
+!.env.example
+*credentials*
+*secret*
+.cloudflared/
+
+# ---------------------------------------------------------------------------
+# Build output and runtime noise
+# ---------------------------------------------------------------------------
 /raffle
 /dist/
 /out/
+raffle.log
+*.log
 
 .DS_Store
-
-# Cloudflare tunnel credential, if anyone ever drops one here.
-.tunnel-token
-cert.pem
-*.tunnel.json
-
-# Runtime log from the launch agent.
-raffle.log

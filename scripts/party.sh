@@ -74,18 +74,26 @@ TOKEN_FILE="${TOKEN_FILE:-$HOME/.config/diaper-raffle/tunnel-token}"
 
 echo "opening the tunnel…"
 if [ -n "$HOSTNAME_ARG" ]; then
+  # Deliberately --token-file rather than --token: an argument is visible to
+  # every user on the machine in `ps`, and this token grants tunnel access to
+  # the whole Cloudflare account. The value is never held in a variable here
+  # either, so it cannot leak through `set -x` or an error trace.
+  token_source=""
   if [ -n "${CLOUDFLARE_TUNNEL_TOKEN:-}" ]; then
-    token="$CLOUDFLARE_TUNNEL_TOKEN"
+    token_source="$(mktemp)"
+    chmod 600 "$token_source"
+    printf '%s' "$CLOUDFLARE_TUNNEL_TOKEN" > "$token_source"
+    # shellcheck disable=SC2064
+    trap "rm -f '$token_source'" EXIT
   elif [ -f "$TOKEN_FILE" ]; then
-    token="$(tr -d '[:space:]' < "$TOKEN_FILE")"
-  else
-    token=""
+    token_source="$TOKEN_FILE"
   fi
 
-  if [ -n "$token" ]; then
+  if [ -n "$token_source" ]; then
     # Dashboard-managed tunnel. Routing lives in the dashboard under the
-    # tunnel's public hostnames, which is also what creates the DNS record.
-    cloudflared tunnel run --token "$token" >"$tunnel_log" 2>&1 &
+    # tunnel's published application routes, which is also what creates the
+    # DNS record.
+    cloudflared tunnel run --token-file "$token_source" >"$tunnel_log" 2>&1 &
   elif [ -f "$HOME/.cloudflared/cert.pem" ] &&
        cloudflared tunnel info "${TUNNEL_NAME:-diaper-raffle}" >/dev/null 2>&1; then
     # Locally-managed tunnel, set up by scripts/setup-tunnel.sh.

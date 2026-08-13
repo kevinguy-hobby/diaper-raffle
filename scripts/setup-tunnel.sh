@@ -4,9 +4,9 @@
 # hostname instead of a random trycloudflare.com one.
 #
 #   cloudflared tunnel login          # do this yourself first — it opens a browser
-#   ./scripts/setup-tunnel.sh jen-kev-baby-shower.com
+#   ./scripts/setup-tunnel.sh your-domain.com
 #
-# Afterwards, `make party HOST=jen-kev-baby-shower.com` starts everything.
+# Afterwards, `make party HOST=your-domain.com` starts everything.
 #
 # This is idempotent: run it again and it will reuse the tunnel it already
 # made rather than piling up duplicates.
@@ -17,7 +17,7 @@ HOSTNAME_ARG="${1:-}"
 TUNNEL_NAME="${TUNNEL_NAME:-diaper-raffle}"
 
 if [ -z "$HOSTNAME_ARG" ]; then
-  echo "usage: $0 <hostname>            e.g. $0 jen-kev-baby-shower.com" >&2
+  echo "usage: $0 <hostname>            e.g. $0 your-domain.com" >&2
   exit 1
 fi
 
@@ -34,7 +34,7 @@ Run this first — it opens a browser and asks which domain to authorise:
 
     cloudflared tunnel login
 
-Pick jen-kev-baby-shower.com from the list, then run this script again.
+Pick your domain from the list, then run this script again.
 MSG
   exit 1
 fi

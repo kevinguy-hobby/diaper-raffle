@@ -169,11 +169,11 @@ No account, no deploy, no cost, and the database is a file on your own machine
 that you can back up by copying it.
 
 **What this is actually running on: a Mac mini behind a Cloudflare tunnel.**
-The domain is `jen-kev-baby-shower.com`. Two pieces, both persistent:
+Two pieces, both persistent:
 
 - `cloudflared` runs as a system daemon (`/Library/LaunchDaemons/com.cloudflare.cloudflared.plist`),
   connected to the `diaper-raffle` tunnel, with a published application route
-  sending the hostname to `http://localhost:8080`.
+  sending your hostname to `http://localhost:8080`.
 - The app runs as a user launch agent — `deploy-launchagent.plist`, installed to
   `~/Library/LaunchAgents/`. `KeepAlive` means launchd restarts it if it dies.
 
@@ -198,8 +198,8 @@ since Cloudflare routes proxied traffic by SNI rather than by the address you
 connected to:
 
 ```
-curl --resolve jen-kev-baby-shower.com:443:172.67.74.226 \
-     https://jen-kev-baby-shower.com/api/health
+curl --resolve your-domain.com:443:<any-cloudflare-edge-ip> \
+     https://your-domain.com/api/health
 ```
 
 **For a URL that stays up somewhere that is not your desk — Fly.io.**

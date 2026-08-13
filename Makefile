@@ -3,7 +3,7 @@ PKG     := ./cmd/server
 DB      ?= diaper-raffle.db
 ADDR    ?= :8080
 
-.PHONY: run dev party build test check fmt vet tidy clean backup
+.PHONY: run dev party status build test check fmt vet tidy clean backup
 
 ## run: build and start the server
 run:
@@ -37,6 +37,10 @@ vet:
 
 tidy:
 	go mod tidy
+
+## status: check every hop from the app to the public URL
+status:
+	@./scripts/status.sh $(HOST)
 
 ## backup: copy the database safely while the server is running
 backup:

@@ -223,14 +223,45 @@ heaviest thing this does and it takes a few milliseconds.
 Whatever you pick, `make backup` takes a consistent copy of the database while
 the server is running. Do that after the draw.
 
-### One thing to know before you expose it
+## The password
 
-There is no authentication. Anyone with the link can edit the roster, press the
-button, and tear stubs open. For a baby shower on a private URL for an
-afternoon that is the right amount of security, and it is why the draw runs
-server-side — the honesty guarantee is about what the page can see, not about
-who is allowed in. If you need to hand it to a wider audience, put it behind
-Cloudflare Access or a basic-auth reverse proxy rather than adding accounts.
+One shared password for the whole site. No accounts, no sign-up, no email.
+Everybody in the room is equally trusted; what this keeps out is a stranger who
+guessed the domain.
+
+```
+make set-password     # prompts twice, without echoing
+make open             # removes it, making the site public again
+```
+
+The password is typed at the prompt and piped into the binary on stdin, so it
+never becomes a command-line argument — nothing lands in shell history or in
+`ps` output. Only a PBKDF2-SHA256 hash (600,000 iterations, random salt) is
+stored, in the `settings` table.
+
+How it behaves:
+
+- **Everything is behind it** except `/api/health`, which the tunnel's monitor
+  needs, and `styles.css`, which the sign-in page needs to render. No guest
+  data is reachable without the password.
+- **A browser gets a page, an API client gets a 401.** The page in front is a
+  sign-in form; the app itself is never served to a signed-out caller, so the
+  roster is not sitting in the HTML behind a hidden overlay.
+- **Sessions last a week**, in a signed cookie with no server-side table. The
+  cookie says only "somebody knew the password at this time" — nothing about
+  who. The signing key lives in the database so a restart does not sign
+  everybody out mid-party.
+- **Changing the password signs everybody out**, by rotating that key. If an
+  unwanted guest gets in, changing it actually evicts them.
+- **Guessing is throttled** — 8 tries per caller per 15 minutes, keyed on
+  `CF-Connecting-IP` since behind Cloudflare the socket address is an edge
+  server. The password is a word announced in a room, so online guessing is
+  the threat that matters; the 600,000 KDF iterations cover the offline case
+  if the database ever walks.
+
+Setting a password does not change the honesty guarantee, which is a separate
+thing: the draw runs server-side and unrevealed stubs come back with a null
+name, so even a signed-in guest with devtools open cannot read a winner early.
 
 ## Tests
 

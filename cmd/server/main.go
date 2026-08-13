@@ -7,10 +7,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,6 +34,9 @@ func run() error {
 		dbPath  = flag.String("db", envOr("DB_PATH", "diaper-raffle.db"), "path to the SQLite file")
 		dev     = flag.Bool("dev", false, "serve static assets from disk instead of the binary")
 		verbose = flag.Bool("verbose", false, "log at debug level")
+
+		setPassword   = flag.Bool("set-password", false, "read a shared password from stdin, store its hash, and exit")
+		clearPassword = flag.Bool("clear-password", false, "remove the shared password, making the site open, and exit")
 	)
 	flag.Parse()
 
@@ -51,6 +56,10 @@ func run() error {
 	defer st.Close()
 	log.Info("database ready", "path", *dbPath)
 
+	if *setPassword || *clearPassword {
+		return managePassword(ctx, st, *setPassword)
+	}
+
 	assetDir := ""
 	if *dev {
 		if assetDir = webui.DevDir(); assetDir == "" {
@@ -59,14 +68,14 @@ func run() error {
 		log.Info("serving assets from disk", "dir", assetDir)
 	}
 
-	assets, index, err := webui.Assets(assetDir)
+	assets, index, login, err := webui.Assets(assetDir)
 	if err != nil {
 		return err
 	}
 
 	srv := &http.Server{
 		Addr:              *addr,
-		Handler:           httpapi.New(st, log, assets, index).Handler(),
+		Handler:           httpapi.New(st, log, assets, index, login).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		// Generous: the odds simulation is the slowest thing here and it still
@@ -100,6 +109,47 @@ func run() error {
 		return fmt.Errorf("shutdown: %w", err)
 	}
 	return <-serveErr
+}
+
+// managePassword sets or clears the shared password and exits.
+//
+// The password arrives on stdin rather than as a flag, deliberately: a flag
+// would land in shell history and in `ps` output for every user on the
+// machine. Only the derived hash is ever written down.
+func managePassword(ctx context.Context, st *store.Store, setting bool) error {
+	if !setting {
+		if err := st.ClearPassword(ctx); err != nil {
+			return err
+		}
+		// Existing cookies must stop working, or removing the password would
+		// leave old sessions valid against a lock that no longer exists.
+		if err := st.RotateSessionKey(ctx); err != nil {
+			return err
+		}
+		fmt.Fprintln(os.Stderr, "password removed — the site is open to anyone with the link")
+		return nil
+	}
+
+	raw, err := io.ReadAll(io.LimitReader(os.Stdin, 4096))
+	if err != nil {
+		return fmt.Errorf("read password: %w", err)
+	}
+	password := strings.TrimRight(string(raw), "\r\n")
+	if strings.TrimSpace(password) == "" {
+		return errors.New("the password cannot be empty")
+	}
+
+	if err := st.SetPassword(ctx, password); err != nil {
+		return err
+	}
+	// Anyone signed in under the old password should be signed out.
+	if err := st.RotateSessionKey(ctx); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(os.Stderr, "password set (%d characters) — everyone signed in has been signed out\n",
+		len([]rune(password)))
+	return nil
 }
 
 func envOr(key, fallback string) string {

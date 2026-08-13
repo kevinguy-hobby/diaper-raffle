@@ -32,7 +32,7 @@ func newTestAPI(t *testing.T) *testAPI {
 	}
 	t.Cleanup(func() { st.Close() })
 
-	assets, index, err := webui.Assets("")
+	assets, index, login, err := webui.Assets("")
 	if err != nil {
 		t.Fatalf("load assets: %v", err)
 	}
@@ -40,7 +40,7 @@ func newTestAPI(t *testing.T) *testAPI {
 	// Handler logs are noise unless something breaks, and a failing test
 	// prints its own diagnosis.
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv := httptest.NewServer(New(st, log, assets, index).Handler())
+	srv := httptest.NewServer(New(st, log, assets, index, login).Handler())
 	t.Cleanup(srv.Close)
 
 	return &testAPI{t: t, server: srv}

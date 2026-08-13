@@ -6,9 +6,11 @@ package store
 import (
 	"context"
 	"database/sql"
-	_ "embed"
+	"embed"
 	"errors"
 	"fmt"
+	"io/fs"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -16,8 +18,12 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-//go:embed schema.sql
-var schemaSQL string
+// Migrations are applied in filename order, so they are numbered. A file's
+// contents must never change once it has shipped — an existing database has
+// already run it and will only see what comes after.
+//
+//go:embed migrations/*.sql
+var migrationFS embed.FS
 
 // Sentinel errors the HTTP layer maps onto status codes.
 var (
@@ -77,10 +83,23 @@ func (s *Store) Close() error { return s.db.Close() }
 // DB exposes the handle for health checks.
 func (s *Store) DB() *sql.DB { return s.db }
 
-// migrate applies the schema once, tracked by SQLite's user_version. The whole
-// schema is one migration today; a second one appends to this list.
+// migrate brings the schema up to date, tracked by SQLite's user_version.
+// Each file runs once, in filename order, inside its own transaction.
 func (s *Store) migrate(ctx context.Context) error {
-	migrations := []string{schemaSQL}
+	entries, err := fs.Glob(migrationFS, "migrations/*.sql")
+	if err != nil {
+		return fmt.Errorf("list migrations: %w", err)
+	}
+	sort.Strings(entries)
+
+	migrations := make([]string, len(entries))
+	for i, name := range entries {
+		body, err := migrationFS.ReadFile(name)
+		if err != nil {
+			return fmt.Errorf("read %s: %w", name, err)
+		}
+		migrations[i] = string(body)
+	}
 
 	var version int
 	if err := s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {

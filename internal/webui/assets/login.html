@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diaper Raffle</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127881;</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Karla:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .gate{max-width:420px;margin:14vh auto 0;padding:0 4px}
+  .gate h1{font-size:clamp(40px,9vw,64px);margin-bottom:14px}
+  .gate .dek{margin-bottom:30px}
+  .gate form{display:flex;flex-direction:column;gap:14px}
+  .gate input[type=password]{
+    width:100%;
+    background:var(--ground-deep);color:var(--stock);
+    border:1px solid var(--rule);border-radius:2px;
+    font-family:var(--mono);font-size:16px;letter-spacing:.12em;
+    padding:14px 13px;
+  }
+  .gate input[type=password]:focus{outline:2px solid var(--gold);outline-offset:2px}
+  .gate button{
+    font-family:var(--display);font-size:23px;letter-spacing:.05em;text-transform:uppercase;
+    background:var(--ink-red);color:var(--stock);
+    border:0;border-radius:2px;padding:15px 20px;cursor:pointer;
+    box-shadow:0 4px 0 #9E2C1E;
+    transition:transform .07s ease, box-shadow .07s ease, background .15s ease;
+  }
+  .gate button:hover:not(:disabled){background:#E44C38}
+  .gate button:active:not(:disabled){transform:translateY(4px);box-shadow:0 0 0 #9E2C1E}
+  .gate button:disabled{background:#5B6B7E;box-shadow:0 4px 0 #43505E;cursor:not-allowed;color:rgba(244,239,226,.5)}
+  .gate .note{
+    font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+    color:rgba(244,239,226,.4);margin-top:22px;line-height:1.7;
+  }
+  .gate .problem{
+    font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+    color:var(--ink-red);min-height:18px;margin:0;
+  }
+</style>
+</head>
+<body>
+<div class="gate">
+  <p class="eyebrow">One diaper, one ticket</p>
+  <h1>Diaper<br><em>Raffle</em></h1>
+  <p class="dek">Ask whoever is running the shower for the password.</p>
+
+  <form id="gate" autocomplete="on">
+    <label class="sr-only" for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password"
+           autofocus required placeholder="password">
+    <button id="go" type="submit">Let me in</button>
+    <p class="problem" id="problem" role="alert" aria-live="assertive"></p>
+  </form>
+
+  <p class="note">Nothing here is public. The roster and the draws are only visible once you are in.</p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var form = document.getElementById('gate');
+  var input = document.getElementById('password');
+  var button = document.getElementById('go');
+  var problem = document.getElementById('problem');
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (button.disabled) return;
+
+    problem.textContent = '';
+    button.disabled = true;
+    button.textContent = 'Checking…';
+
+    fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: input.value })
+    })
+      .then(function (res) {
+        return res.text().then(function (text) {
+          var data = null;
+          try { data = JSON.parse(text); } catch (e) { /* handled below */ }
+          if (!res.ok) {
+            throw new Error((data && data.error && data.error.message) ||
+              'Could not check the password.');
+          }
+          return data;
+        });
+      })
+      .then(function () {
+        // Straight back to whatever was being asked for.
+        window.location.reload();
+      })
+      .catch(function (err) {
+        button.disabled = false;
+        button.textContent = 'Let me in';
+        problem.textContent = err.message;
+        input.select();
+      });
+  });
+})();
+</script>
+</body>
+</html>

@@ -14,36 +14,41 @@ import (
 //go:embed assets
 var embedded embed.FS
 
-// Assets returns a handler for the static files and the bytes of index.html.
+// Assets returns a handler for the static files, the bytes of index.html, and
+// the bytes of login.html.
 //
 // When dir is non-empty the files are read from disk on every request, which
 // is what you want while editing CSS. Otherwise they come from the binary.
-func Assets(dir string) (http.Handler, []byte, error) {
+func Assets(dir string) (http.Handler, []byte, []byte, error) {
 	var files fs.FS
 
 	if dir != "" {
 		info, err := os.Stat(dir)
 		if err != nil {
-			return nil, nil, fmt.Errorf("read assets from %s: %w", dir, err)
+			return nil, nil, nil, fmt.Errorf("read assets from %s: %w", dir, err)
 		}
 		if !info.IsDir() {
-			return nil, nil, fmt.Errorf("assets path %s is not a directory", dir)
+			return nil, nil, nil, fmt.Errorf("assets path %s is not a directory", dir)
 		}
 		files = os.DirFS(dir)
 	} else {
 		sub, err := fs.Sub(embedded, "assets")
 		if err != nil {
-			return nil, nil, fmt.Errorf("open embedded assets: %w", err)
+			return nil, nil, nil, fmt.Errorf("open embedded assets: %w", err)
 		}
 		files = sub
 	}
 
 	index, err := fs.ReadFile(files, "index.html")
 	if err != nil {
-		return nil, nil, fmt.Errorf("read index.html: %w", err)
+		return nil, nil, nil, fmt.Errorf("read index.html: %w", err)
+	}
+	login, err := fs.ReadFile(files, "login.html")
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("read login.html: %w", err)
 	}
 
-	return http.FileServerFS(files), index, nil
+	return http.FileServerFS(files), index, login, nil
 }
 
 // DevDir finds the asset directory next to the source, so `-dev` works from a

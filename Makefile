@@ -3,7 +3,7 @@ PKG     := ./cmd/server
 DB      ?= diaper-raffle.db
 ADDR    ?= :8080
 
-.PHONY: run dev party status build test check fmt vet tidy clean backup
+.PHONY: run dev party status set-password open build test check fmt vet tidy clean backup
 
 ## run: build and start the server
 run:
@@ -37,6 +37,14 @@ vet:
 
 tidy:
 	go mod tidy
+
+## set-password: choose the shared password (prompts, never echoes)
+set-password: build
+	@./scripts/set-password.sh
+
+## open: remove the password, making the site public again
+open: build
+	@./scripts/set-password.sh --clear
 
 ## status: check every hop from the app to the public URL
 status:

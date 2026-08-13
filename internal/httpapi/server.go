@@ -19,8 +19,13 @@ type Server struct {
 	assets http.Handler
 
 	// index is the single page every non-API route serves, so /e/some-slug
-	// works on a hard refresh.
+	// works on a hard refresh. login is what stands in for it when a password
+	// is set and the caller has not given it yet.
 	index []byte
+	login []byte
+
+	// attempts throttles password guessing.
+	attempts *attemptLimiter
 
 	// Simulated odds are deterministic per roster version, so they can be
 	// cached and will not jitter when the panel is reopened.
@@ -29,13 +34,16 @@ type Server struct {
 }
 
 // New builds the server. assets serves the static files; index is the HTML
-// that backs every page route.
-func New(st *store.Store, log *slog.Logger, assets http.Handler, index []byte) *Server {
+// that backs every page route, and login the page shown in its place when the
+// raffle is locked.
+func New(st *store.Store, log *slog.Logger, assets http.Handler, index, login []byte) *Server {
 	return &Server{
 		store:     st,
 		log:       log,
 		assets:    assets,
 		index:     index,
+		login:     login,
+		attempts:  newAttemptLimiter(),
 		oddsCache: map[string][]OddsRow{},
 	}
 }
@@ -45,6 +53,10 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", s.handleHealth)
+
+	mux.HandleFunc("GET /api/session", s.handleSession)
+	mux.HandleFunc("POST /api/session", s.handleLogin)
+	mux.HandleFunc("DELETE /api/session", s.handleLogout)
 
 	mux.HandleFunc("GET /api/events", s.handleListEvents)
 	mux.HandleFunc("POST /api/events", s.handleCreateEvent)
@@ -67,7 +79,7 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("/", s.handlePage)
 
-	return s.recoverPanic(s.logRequests(mux))
+	return s.recoverPanic(s.logRequests(s.requirePassword(mux)))
 }
 
 // handlePage serves static assets, and falls back to the single page for

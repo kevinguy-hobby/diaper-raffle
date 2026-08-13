@@ -18,6 +18,7 @@
     picker: document.getElementById('eventpick'),
     renameEvent: document.getElementById('renameevent'),
     newEvent: document.getElementById('newevent'),
+    signOut: document.getElementById('signout'),
     roster: document.getElementById('roster'),
     saveFlag: document.getElementById('saveflag'),
     tally: document.getElementById('tally'),
@@ -56,6 +57,12 @@
         var data = null;
         if (text) {
           try { data = JSON.parse(text); } catch (e) { /* handled below */ }
+        }
+        if (res.status === 401) {
+          // The session expired or the password changed. Reloading gets the
+          // sign-in page from the server rather than us faking one here.
+          window.location.reload();
+          throw new Error('Signed out.');
         }
         if (!res.ok) {
           var message = data && data.error && data.error.message;
@@ -544,8 +551,25 @@
 
   /* ---------- boot ---------- */
 
+  // Only show a way out if there is something to be signed out of.
+  function showSignOutIfLocked() {
+    return api('GET', '/api/session')
+      .then(function (session) {
+        if (session.locked) el.signOut.hidden = false;
+      })
+      .catch(function () { /* not worth bothering anyone about */ });
+  }
+
+  el.signOut.addEventListener('click', function () {
+    api('DELETE', '/api/session')
+      .then(function () { window.location.reload(); })
+      .catch(complain);
+  });
+
   function boot() {
     var wanted = slugFromLocation();
+
+    showSignOutIfLocked();
 
     api('GET', '/api/events')
       .then(function (data) {

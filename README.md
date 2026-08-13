@@ -168,8 +168,42 @@ tailscale funnel 8080
 No account, no deploy, no cost, and the database is a file on your own machine
 that you can back up by copying it.
 
-**For a URL that stays up — Fly.io.** `Dockerfile` and `fly.toml` are here and
-configured for it:
+**What this is actually running on: a Mac mini behind a Cloudflare tunnel.**
+The domain is `jen-kev-baby-shower.com`. Two pieces, both persistent:
+
+- `cloudflared` runs as a system daemon (`/Library/LaunchDaemons/com.cloudflare.cloudflared.plist`),
+  connected to the `diaper-raffle` tunnel, with a published application route
+  sending the hostname to `http://localhost:8080`.
+- The app runs as a user launch agent — `deploy-launchagent.plist`, installed to
+  `~/Library/LaunchAgents/`. `KeepAlive` means launchd restarts it if it dies.
+
+Both halves have to be up. The tunnel surviving a reboot while the app does not
+is the failure mode worth designing against, because it fails as a 502 on a URL
+you have already handed out rather than as an obvious outage.
+
+```
+# install / reload the app side
+cp deploy-launchagent.plist ~/Library/LaunchAgents/com.kevinnguyen.diaper-raffle.plist
+launchctl unload ~/Library/LaunchAgents/com.kevinnguyen.diaper-raffle.plist 2>/dev/null
+launchctl load   ~/Library/LaunchAgents/com.kevinnguyen.diaper-raffle.plist
+
+# take it back down
+launchctl unload ~/Library/LaunchAgents/com.kevinnguyen.diaper-raffle.plist
+```
+
+Edit the paths in the plist if the checkout moves. Logs go to `raffle.log`.
+
+To check the tunnel without waiting on DNS — useful right after a change,
+since Cloudflare routes proxied traffic by SNI rather than by the address you
+connected to:
+
+```
+curl --resolve jen-kev-baby-shower.com:443:172.67.74.226 \
+     https://jen-kev-baby-shower.com/api/health
+```
+
+**For a URL that stays up somewhere that is not your desk — Fly.io.**
+`Dockerfile` and `fly.toml` are here and configured for it:
 
 ```
 fly launch --no-deploy --copy-config --name your-app-name

@@ -3,11 +3,15 @@ PKG     := ./cmd/server
 DB      ?= diaper-raffle.db
 ADDR    ?= :8080
 
-.PHONY: run dev build test check fmt vet tidy clean backup
+.PHONY: run dev party build test check fmt vet tidy clean backup
 
 ## run: build and start the server
 run:
 	go run $(PKG) -addr $(ADDR) -db $(DB)
+
+## party: start the server and a Cloudflare tunnel, and print the public URL
+party:
+	@./scripts/party.sh $(HOST)
 
 ## dev: serve assets from disk, so CSS and JS edits need only a refresh
 dev:

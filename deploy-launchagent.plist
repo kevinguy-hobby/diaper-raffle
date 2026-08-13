@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.kevinnguyen.diaper-raffle</string>
+
+    <!-- The cloudflared tunnel is a persistent system service pointing at
+         localhost:8080. If this app is not listening there, the tunnel is up
+         and every guest sees a 502, so it needs to be just as durable. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/kevinnguyen/workspace/diaper-raffle/raffle</string>
+        <string>-addr</string>
+        <string>:8080</string>
+        <string>-db</string>
+        <string>/Users/kevinnguyen/workspace/diaper-raffle/diaper-raffle.db</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/kevinnguyen/workspace/diaper-raffle</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/kevinnguyen/workspace/diaper-raffle/raffle.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/kevinnguyen/workspace/diaper-raffle/raffle.log</string>
+</dict>
+</plist>

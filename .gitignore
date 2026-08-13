@@ -10,3 +10,11 @@
 /out/
 
 .DS_Store
+
+# Cloudflare tunnel credential, if anyone ever drops one here.
+.tunnel-token
+cert.pem
+*.tunnel.json
+
+# Runtime log from the launch agent.
+raffle.log

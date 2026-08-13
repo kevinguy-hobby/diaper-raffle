@@ -1,0 +1,43 @@
+# Fly.io deployment.
+#
+#   fly launch --no-deploy --copy-config --name <your-app-name>
+#   fly volumes create raffle_data --size 1 --region <your-region>
+#   fly deploy
+#
+# The volume is the part that matters. SQLite is a file, and a platform with an
+# ephemeral filesystem will throw that file away on every redeploy — roster,
+# draws and all.
+
+app = "diaper-raffle"
+primary_region = "sjc"
+
+[build]
+
+[env]
+  ADDR = ":8080"
+  DB_PATH = "/data/diaper-raffle.db"
+
+[mounts]
+  source = "raffle_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+
+  # One machine, always. SQLite has a single writer, and two machines would
+  # each end up with their own copy of the party.
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

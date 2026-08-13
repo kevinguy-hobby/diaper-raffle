@@ -1,0 +1,12 @@
+# The party's data. Never commit a guest list.
+*.db
+*.db-wal
+*.db-shm
+*.db.bak
+
+# Build output
+/raffle
+/dist/
+/out/
+
+.DS_Store

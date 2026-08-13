@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diaper Raffle</title>
+<meta name="description" content="A weighted raffle for a baby shower: every diaper is a ticket, nobody wins twice.">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127881;</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Karla:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<div class="toast" id="toast" role="alert" aria-live="assertive" hidden></div>
+
+<div class="wrap">
+
+  <header class="topbar">
+    <span class="brandmark">Diaper Raffle</span>
+    <div class="topbar-actions">
+      <label class="sr-only" for="eventpick">Which raffle</label>
+      <select class="picker" id="eventpick"></select>
+      <button class="ghost" id="renameevent" type="button">Rename</button>
+      <button class="ghost" id="newevent" type="button">New raffle</button>
+    </div>
+  </header>
+
+  <p class="eyebrow" id="eyebrow">Baby shower &middot; one diaper, one ticket</p>
+  <h1>Diaper<br><em>Raffle</em></h1>
+  <p class="dek">Paste the roster, press the button. Every diaper is a ticket, and nobody can take home two prizes.</p>
+
+  <div class="panel">
+    <div class="panel-head">
+      <label class="label" for="roster">Roster</label>
+      <span class="saveflag" id="saveflag" role="status" aria-live="polite"></span>
+    </div>
+    <textarea id="roster" spellcheck="false" aria-describedby="rosterhint" disabled></textarea>
+    <p class="hint" id="rosterhint">One guest per line: name, then diaper count. Paste straight from the spreadsheet, or type <span class="mono">Name, 32</span>. Repeated names get added together. Anyone at zero sits out.</p>
+    <div class="tally" id="tally"></div>
+  </div>
+
+  <div class="stage">
+    <button id="draw" disabled>Draw winners</button>
+    <p class="substage" id="substage">Loading&hellip;</p>
+  </div>
+
+  <div class="stubs" id="stubs"></div>
+
+  <details id="oddspanel">
+    <summary>Show everyone's odds</summary>
+    <table>
+      <thead><tr><th>Guest</th><th class="r">Diapers</th><th class="r">Chance at a prize</th><th class="barcol"></th></tr></thead>
+      <tbody id="oddsbody"><tr><td colspan="4">Loading&hellip;</td></tr></tbody>
+    </table>
+    <p class="hint" id="oddsnote">Chance of finishing in the top three across 4,000 simulated draws, so it already accounts for one win per person.</p>
+  </details>
+
+  <details id="historypanel">
+    <summary>Past draws</summary>
+    <div id="historybody"><p class="hint">Loading&hellip;</p></div>
+  </details>
+
+  <hr class="hr">
+  <p class="hint">Everything here is saved as you go. Close the tab, refresh, hand the laptop to somebody else &mdash; the roster and every draw will still be here.</p>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
